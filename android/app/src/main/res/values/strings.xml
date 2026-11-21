@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Координатный измеритель</string>
+    <string name="title_activity_main">Координатный измеритель</string>
+    <string name="package_name">ru.coordinate.meter</string>
+    <string name="custom_url_scheme">ru.coordinate.meter</string>
+</resources>

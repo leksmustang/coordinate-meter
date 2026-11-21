@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101715">
+  <title>Координатный измеритель</title>
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">⌖</span>
+      <div>
+        <h1>Координатный измеритель</h1>
+        <p>Расстояния между точками по GPS фотографий</p>
+      </div>
+    </div>
+    <span class="privacy-badge">Локальная обработка</span>
+  </header>
+
+  <main>
+    <section id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Выбрать фотографии">
+      <input id="fileInput" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" multiple hidden>
+      <div class="drop-icon" aria-hidden="true">＋</div>
+      <h2>Добавьте фотографии</h2>
+        <p>Перетащите JPEG или PNG сюда либо нажмите, чтобы выбрать</p>
+      <button id="chooseButton" class="primary" type="button">Выбрать фото</button>
+      <small>Снимки никуда не загружаются. GPS читается из EXIF или распознаётся с подписи.</small>
+    </section>
+
+    <section id="workspace" class="workspace hidden" aria-live="polite">
+      <div class="toolbar">
+        <div>
+          <h2>Маршрут</h2>
+          <p id="routeSummary">0 точек</p>
+        </div>
+        <div class="toolbar-actions">
+          <button id="addMoreButton" class="secondary" type="button">Добавить фото</button>
+          <button id="sortButton" class="secondary" type="button">По времени</button>
+          <button id="exportButton" class="secondary" type="button">Экспорт CSV</button>
+          <button id="clearButton" class="danger" type="button">Очистить</button>
+        </div>
+      </div>
+
+      <div class="metrics" aria-label="Итоги маршрута">
+        <article>
+          <span>Точек</span>
+          <strong id="pointCount">0</strong>
+        </article>
+        <article>
+          <span>Общее расстояние</span>
+          <strong id="totalDistance">—</strong>
+        </article>
+        <article>
+          <span>По прямой</span>
+          <strong id="directDistance">—</strong>
+        </article>
+        <article>
+          <span>Перепад высоты</span>
+          <strong id="elevationDelta">—</strong>
+        </article>
+      </div>
+
+      <div id="notice" class="notice hidden" role="status"></div>
+
+      <div class="content-grid">
+        <section class="panel points-panel">
+          <div class="panel-heading">
+            <h3>Точки</h3>
+            <span>Порядок строк задаёт маршрут</span>
+          </div>
+          <div id="pointsList" class="points-list"></div>
+        </section>
+
+        <section class="panel measurement-panel">
+          <div class="panel-heading">
+            <h3>Измерение между двумя точками</h3>
+            <span>Независимо от порядка маршрута</span>
+          </div>
+          <div class="selector-row">
+            <label>Точка A<select id="pointA"></select></label>
+            <span class="arrow" aria-hidden="true">→</span>
+            <label>Точка B<select id="pointB"></select></label>
+          </div>
+          <div class="pair-result">
+            <span>Расстояние по WGS‑84</span>
+            <strong id="pairDistance">—</strong>
+            <small id="pairDetails">Выберите две точки</small>
+          </div>
+          <div class="map-section">
+            <div class="map-controls">
+              <label>Считать расстояния от точки<select id="facilityOrigin"></select></label>
+              <label>Радиус поиска<select id="facilityRadius">
+                <option value="2000">2 км</option>
+                <option value="5000">5 км</option>
+                <option value="10000" selected>10 км</option>
+                <option value="25000">25 км</option>
+              </select></label>
+              <button id="openYandexButton" class="primary" type="button">Открыть в Яндекс Картах</button>
+              <button id="loadMapButton" class="secondary" type="button">Загрузить карту и объекты</button>
+            </div>
+            <div class="category-filters" aria-label="Категории объектов">
+              <label><input type="checkbox" value="police" checked> Полиция</label>
+              <label><input type="checkbox" value="mvd" checked> МВД</label>
+              <label><input type="checkbox" value="fsb" checked> ФСБ</label>
+              <label><input type="checkbox" value="playground" checked> Детские площадки</label>
+              <label><input type="checkbox" value="kindergarten" checked> Детские сады</label>
+              <label><input type="checkbox" value="school" checked> Школы</label>
+            </div>
+            <div id="mapPrivacy" class="map-privacy">
+              Карта загружается только после нажатия кнопки. Для подложки координаты области передаются Яндекс Tiles API, а для поиска ближайших объектов — OpenStreetMap/Overpass. Сами фотографии и подписи к ним не передаются.
+            </div>
+            <div id="mapStatus" class="map-status hidden" role="status"></div>
+            <div id="customPointPanel" class="custom-point-panel hidden">
+              <div class="custom-point-heading">
+                <div>
+                  <strong>Произвольная точка на карте</strong>
+                  <span>Нажмите в нужном месте карты. Маркер можно перетаскивать.</span>
+                </div>
+                <button id="clearCustomPointButton" class="secondary hidden" type="button">Убрать точку</button>
+              </div>
+              <div id="customPointResult" class="custom-point-result">Точка пока не выбрана</div>
+            </div>
+            <div id="routeMap" class="route-map hidden" aria-label="Карта маршрута и ближайших объектов"></div>
+            <div id="facilityResults" class="facility-results hidden"></div>
+            <p class="canvas-caption">Подложка: Яндекс Карты. Объекты: OpenStreetMap. Расстояния указаны по прямой; данные об объектах могут быть неполными или устаревшими.</p>
+          </div>
+        </section>
+      </div>
+      <section id="allPairsPanel" class="panel all-pairs-panel hidden">
+        <div class="panel-heading">
+          <div>
+            <h3>Расстояния между всеми точками</h3>
+            <span id="allPairsSummary">Все уникальные пары с координатами</span>
+          </div>
+          <label class="pair-filter">Показать
+            <select id="allPairsFilter">
+              <option value="all" selected>Все пары</option>
+              <option value="close">Ближе 25 м</option>
+            </select>
+          </label>
+        </div>
+        <div id="allPairsList" class="all-pairs-list"></div>
+        <div class="all-pairs-footer"><span id="allPairsShown"></span><button id="allPairsMore" class="secondary hidden" type="button">Показать ещё 100</button></div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="editDialog">
+    <form id="editForm" method="dialog">
+      <div class="dialog-heading">
+        <div>
+          <h2>Координаты точки</h2>
+          <p id="editFilename"></p>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Закрыть" type="submit">×</button>
+      </div>
+      <input id="editId" type="hidden">
+      <div class="form-grid">
+        <label>Широта<input id="editLat" type="number" min="-90" max="90" step="any" required></label>
+        <label>Долгота<input id="editLon" type="number" min="-180" max="180" step="any" required></label>
+        <label>Высота, м<input id="editAltitude" type="number" step="any"></label>
+        <label>Точность, м<input id="editAccuracy" type="number" min="0" step="any"></label>
+      </div>
+      <label>Комментарий<input id="editNote" type="text" maxlength="200" placeholder="Например: контрольная точка"></label>
+      <p id="editError" class="form-error hidden"></p>
+      <div class="dialog-actions">
+        <button class="secondary" value="cancel" type="submit">Отмена</button>
+        <button id="saveEditButton" class="primary" value="default" type="submit">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="areaOcrDialog" class="area-ocr-dialog">
+    <div class="area-ocr-content">
+      <div class="dialog-heading">
+        <div><h2>Повторный поиск по области</h2><p id="areaOcrFilename"></p></div>
+        <button id="closeAreaOcr" class="icon-button" type="button" aria-label="Закрыть">×</button>
+      </div>
+      <p class="area-ocr-help">Выделите рамкой подпись с широтой и долготой. Поиск использует только выбранную область фотографии.</p>
+      <div class="area-ocr-image-wrap"><img id="areaOcrImage" alt="Фотография для выбора области"><div id="areaOcrSelection" class="area-ocr-selection hidden"></div></div>
+      <div class="area-ocr-actions"><button id="runAreaOcr" class="primary" type="button" disabled>Распознать область</button><button id="resetAreaOcr" class="secondary" type="button">Выбрать заново</button><span id="areaOcrStatus" role="status">Область пока не выбрана</span></div>
+      <div id="areaOcrResult" class="area-ocr-result hidden">
+        <label>Варианты распознавания<select id="areaOcrCandidates"></select></label>
+        <div class="form-grid">
+          <label>Широта<input id="areaOcrLat" type="number" min="-90" max="90" step="any"></label>
+          <label>Долгота<input id="areaOcrLon" type="number" min="-180" max="180" step="any"></label>
+        </div>
+        <p id="areaOcrError" class="form-error hidden"></p>
+        <div class="dialog-actions"><button id="applyAreaOcr" class="primary" type="button">Применить к точке</button></div>
+      </div>
+    </div>
+  </dialog>
+
+  <template id="pointTemplate">
+    <article class="point-card">
+      <div class="point-order"></div>
+      <img class="point-thumb" alt="">
+      <div class="point-info">
+        <div class="point-title-row">
+          <h4></h4>
+          <span class="source-badge"></span>
+        </div>
+        <p class="coordinates"></p>
+        <p class="metadata"></p>
+        <p class="segment-distance"></p>
+      </div>
+      <div class="point-actions">
+        <button class="move-up icon-button" type="button" title="Поднять">↑</button>
+        <button class="move-down icon-button" type="button" title="Опустить">↓</button>
+        <button class="edit icon-button" type="button" title="Изменить">✎</button>
+        <button class="retry-ocr icon-button" type="button" title="Выделить область для повторного распознавания" aria-label="Повторить OCR по области">▣</button>
+        <button class="remove icon-button remove-button" type="button" title="Удалить">×</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="vendor/tesseract.min.js"></script>
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

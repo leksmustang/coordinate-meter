@@ -1,0 +1,18 @@
+{
+  "appId": "ru.coordinate.meter",
+  "appName": "Координатный измеритель",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0c1210"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#0c1210"
+    }
+  }
+}

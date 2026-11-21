@@ -1,0 +1,10 @@
+{
+  "windows": {
+    "apiKey": "WINDOWS_API_KEY",
+    "signingSecret": "WINDOWS_WITH_TTL_SIGNING_SECRET"
+  },
+  "android": {
+    "apiKey": "ANDROID_API_KEY",
+    "signingSecret": "ANDROID_WITH_TTL_SIGNING_SECRET"
+  }
+}

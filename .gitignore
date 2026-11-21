@@ -1,0 +1,15 @@
+node_modules/
+.pnpm-store/
+*.traineddata
+dist/
+www/
+.codex-remote-attachments/
+.windows-build-app/
+Готовые приложения/
+0/
+.android-build-tools/
+android/.gradle/
+android/local.properties
+.secrets/
+electron/yandex-tiles.secrets.cjs
+android/app/src/main/java/ru/coordinate/meter/YandexTilesSecrets.java

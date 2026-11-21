@@ -1,0 +1,68 @@
+{
+  "name": "coordinate-meter",
+  "version": "1.5.11",
+  "private": true,
+  "main": "electron/main.cjs",
+  "description": "Offline photo GPS coordinate distance meter",
+  "author": "Coordinate Meter",
+  "scripts": {
+    "test": "node --test tests/core.test.js tests/ocr.integration.test.js",
+    "start": "electron .",
+    "configure:maps": "node scripts/configure-yandex-tiles.cjs",
+    "audit:secrets": "node scripts/audit-secrets.cjs",
+    "build:windows": "node scripts/configure-yandex-tiles.cjs && electron-builder --win portable",
+    "prepare:android": "node scripts/prepare-android.cjs",
+    "sync:android": "node scripts/prepare-android.cjs && node scripts/sync-android-assets.cjs",
+    "sync:android:native": "cap sync android",
+    "build:android": "node scripts/configure-yandex-tiles.cjs && node scripts/prepare-android.cjs && node scripts/sync-android-assets.cjs && cd android && gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/browser": "^8.0.0",
+    "@capacitor/clipboard": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/filesystem": "^8.0.0",
+    "@capacitor/share": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/rus": "^1.0.0",
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.0",
+    "leaflet": "1.9.4",
+    "tesseract.js": "^6.0.1"
+  },
+  "build": {
+    "appId": "local.coordinate-meter",
+    "productName": "Координатный измеритель",
+    "compression": "maximum",
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "vendor/**/*",
+      "assets/icon.png",
+      "assets/icon.ico",
+      "assets/yandex-maps-logo.svg",
+      "index.html",
+      "styles.css",
+      "core.js",
+      "app.js",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "target": [
+        "portable"
+      ]
+    },
+    "portable": {
+      "artifactName": "CoordinateMeter-${version}.exe"
+    }
+  }
+}
